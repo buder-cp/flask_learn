@@ -17,6 +17,72 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
 
 
+class User(db.Model):
+    __tablename__ = "user"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    username = db.Column(db.String(200), nullable=False)
+
+
+class Article(db.Model):
+    __tablename__ = "article"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+
+    # 外键：
+    # 1. 外键的数据类型一定要看，所引用的字段的类型
+    # 2. db.ForeignKey("表名.字段名 ")
+    # 3. 外键是属于数据库层面的，不推荐直接在ORM中使用
+    author_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+
+    # relationship：
+    # 1. 第一个参数是模型的名字，必须要和模型的名字保持一致
+    # 2. backref（back reference）：代表反向引用，代表对方访问我的时候的字段名称
+    author = db.relationship("User", backref="articles")
+
+
+# 暂时还没有讲到ORM迁移数据库的版本管理，所以现在只能先删除所有表，再创建
+db.drop_all()
+db.create_all()
+
+
+@app.route("/otm")
+def one_to_many():
+    article1 = Article(title="111", content="xxx")
+    article2 = Article(title="222", content="yyy")
+    user = User(username="zhiliao")
+    article1.author = user
+    article2.author = user
+    db.session.add(article1, article2)
+    db.session.commit()
+
+    print(user.articles)
+    return "one to many数据操作成功"
+
+
+@app.route("/article")
+def article_view():
+    # 1. 添加数据
+    # article = Article(title="钢铁是怎样炼成的", content="xxx")
+    # db.session.add(article)
+    # db.session.commit()
+
+    # 2. 查询数据
+    article = Article.query.filter_by(id=1)[0]
+    print(article.title)
+
+    # 3. 修改数据
+    article = Article.query.filter_by(id=1)[0]
+    article.content = "yyy"
+    db.session.commit()
+
+    # 4. 删除数据
+    # Article.query.filter_by(id=1).delete()
+    # db.session.commit()
+    return "数据操作成功"
+
+
 @app.route('/')
 def hello_world():  # put application's code here
     engine = db.get_engine()
